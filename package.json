@@ -4,7 +4,7 @@
   "private": true,
   "homepage": "https://lampensau.github.io/ggo-config-parser",
   "scripts": {
-    "dev": "node --no-deprecation ./node_modules/.bin/next dev",
+    "dev": "next dev",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d out",
     "build": "next build",

@@ -7,11 +7,12 @@ import { Header } from './Header';
 import { FileUploadArea } from './FileUploadArea';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from './ErrorBoundary';
+import type { ParsedConfig, User, Device } from '@/types/config';
 
-// Move these to dynamic imports
-const ConfigDetails = dynamic(() => import('./ConfigDetails'));
-const UserDevices = dynamic(() => import('./UserDevices'));
-const UnassignedDevices = dynamic(() => import('./UnassignedDevices'));
+// Dynamic imports with proper typing
+const ConfigDetails = dynamic(() => import('./ConfigDetails').then(mod => mod.ConfigDetails));
+const UserDevices = dynamic(() => import('./UserDevices').then(mod => mod.UserDevices));
+const UnassignedDevices = dynamic(() => import('./UnassignedDevices').then(mod => mod.UnassignedDevices));
 
 const ConfigParserApp: React.FC = () => {
   const [parsedData, setParsedData] = useState<ParsedConfig | null>(null);
@@ -84,11 +85,11 @@ const ConfigParserApp: React.FC = () => {
       'MAC Address'
     ].join(',');
 
-    const linkedDevicesRows = parsedData.users.flatMap(user => {
-      const linkedDevices = parsedData.devices.filter(device => device.linkedToUser === user.id);
+    const linkedDevicesRows = parsedData.users.flatMap((user: User) => {
+      const linkedDevices = parsedData.devices.filter((device: Device) => device.linkedToUser === user.id);
 
       if (linkedDevices.length > 0) {
-        return linkedDevices.map(device => [
+        return linkedDevices.map((device: Device) => [
           user.name,
           user.id,
           device.name,
@@ -108,8 +109,8 @@ const ConfigParserApp: React.FC = () => {
     });
 
     const unlinkedDevicesRows = parsedData.devices
-      .filter(device => device.linkedToUser === null)
-      .map(device => [
+      .filter((device: Device) => device.linkedToUser === null)
+      .map((device: Device) => [
         '', '',
         device.name,
         device.typeName,

@@ -11,7 +11,12 @@ interface FileUploadAreaProps {
 }
 
 // Create a custom type for the simulated drag event
-type SimulatedDragEvent = Pick<React.DragEvent<HTMLDivElement>, 'preventDefault' | 'dataTransfer'>;
+type SimulatedDragEvent = {
+  preventDefault: () => void;
+  dataTransfer: {
+    files: FileList;
+  };
+};
 
 export const FileUploadArea: React.FC<FileUploadAreaProps> = ({
   isDragging,
@@ -56,9 +61,11 @@ export const FileUploadArea: React.FC<FileUploadAreaProps> = ({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const file = e.target.files?.[0];
                 if (file) {
+                  const fileList = new DataTransfer();
+                  fileList.items.add(file);
                   const event: SimulatedDragEvent = {
                     preventDefault: () => { },
-                    dataTransfer: { files: [file] }
+                    dataTransfer: { files: fileList.files }
                   };
                   onDrop(event as React.DragEvent<HTMLDivElement>);
                 }

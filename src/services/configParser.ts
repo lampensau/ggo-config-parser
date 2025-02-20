@@ -77,8 +77,8 @@ export const parseConfigFile = (fileContent: string): ParsedConfig => {
     configInfo["Unassigned Devices"] = unassignedDevices;
 
     return { configInfo, users, devices };
-  } catch (_err) {
-    throw new Error('Failed to parse configuration file');
+  } catch (err) {
+    throw new Error('Failed to parse configuration file. Please ensure it is a valid Green-GO configuration file.');
   }
 };
 
@@ -127,37 +127,4 @@ const extractDevices = (config: any, deviceAssignments: { [key: string]: string 
         linkedToUser: deviceAssignments[shortDeviceId] || null
       };
     });
-};
-
-interface DeviceData {
-  name: string;
-  deviceType: number;
-  serialNumber: string;
-  firmware: string;
-  ipAddress: string;
-  macAddress: string;
-  linkedToUser: string | null;
-}
-
-interface UserData {
-  id: string;
-  name: string;
-  color: string;
-  devices: DeviceData[];
-}
-
-const parseDevices = (data: DeviceData[]): Device[] => {
-  // ... implementation
-};
-
-const parseUsers = (data: UserData[]): User[] => {
-  // ... implementation
-};
-
-const deviceTypeMap: Record<number, string> = {
-  // ... your device type mappings
-};
-
-const getDeviceType = (deviceType: number): string => {
-  return deviceTypeMap[deviceType] || 'Unknown Device Type';
-};
+}; 
