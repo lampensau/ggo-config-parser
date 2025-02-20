@@ -160,4 +160,4 @@ const deviceTypeMap: Record<number, string> = {
 
 const getDeviceType = (deviceType: number): string => {
   return deviceTypeMap[deviceType] || 'Unknown Device Type';
-}; 
+};
