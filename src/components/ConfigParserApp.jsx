@@ -10,6 +10,7 @@ const ConfigParserApp = () => {
   const [parsedData, setParsedData] = useState(null);
   const [error, setError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [originalFileName, setOriginalFileName] = useState(null);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -132,7 +133,7 @@ const ConfigParserApp = () => {
 
       return { configInfo, users, devices };
     } catch (err) {
-      throw new Error('Failed to parse configuration file. Please ensure it is a valid JSON file.');
+      throw new Error('Failed to parse configuration file. Please ensure it is a valid Green-GO configuration file.');
     }
   };
 
@@ -145,9 +146,11 @@ const ConfigParserApp = () => {
     if (!file) return;
 
     if (!file.name.endsWith('.gg5') && !file.name.endsWith('.json')) {
-      setError('Please upload a .gg5 or .json configuration file');
+      setError('Please upload a Green-GO .gg5 configuration file');
       return;
     }
+
+    setOriginalFileName(file.name);
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -173,6 +176,11 @@ const ConfigParserApp = () => {
 
   const exportToCSV = useCallback(() => {
     if (!parsedData) return;
+
+    // Generate export filename based on original filename
+    const exportFileName = originalFileName
+      ? originalFileName.replace(/\.(gg5)$/, '.csv')
+      : 'config_export.csv';
 
     // Create CSV headers
     const headers = [
@@ -239,12 +247,12 @@ const ConfigParserApp = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', 'config_export.csv');
+    link.setAttribute('download', exportFileName);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [parsedData]);
+  }, [parsedData, originalFileName]);
 
   // After mounting, we have access to the theme
   useEffect(() => {
@@ -378,7 +386,7 @@ const ConfigParserApp = () => {
                   Drag and drop your configuration file here
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Supports Green-GO <code>.gg5</code> configuration files
+                  (Only supports Green-GO <code>.gg5</code> configuration files)
                 </p>
                 {error && (
                   <p className="text-red-500 dark:text-red-400 mt-4" role="alert">{error}</p>
