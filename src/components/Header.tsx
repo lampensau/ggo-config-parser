@@ -1,6 +1,7 @@
 import { FileDown, RotateCcw, Sun, Moon, SunMoon } from 'lucide-react';
 import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ParsedConfig } from '@/types/config';
+import Image from 'next/image';
 
 interface HeaderProps {
   parsedData: ParsedConfig | null;
@@ -44,12 +45,12 @@ export const Header: React.FC<HeaderProps> = ({
     <div className="sticky top-0 z-10 bg-emerald-600 dark:bg-emerald-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
-          <img
+          <Image
             src={`${getBasePath()}/logo-plain.svg`}
             alt="Green-GO Logo"
-            className="h-8 w-8 mr-2 brightness-0 invert"
             width={32}
             height={32}
+            className="mr-2 brightness-0 invert"
           />
           <h1 className="text-white text-xl font-semibold">
             Green-GO Config Parser
