@@ -1,11 +1,12 @@
 import { ParsedConfig, DeviceTypes, User, Device } from '@/types/config';
 
 export const deviceTypes: DeviceTypes = {
-  258: "BPX Beltpack",
-  259: "BPXSP Sports Beltpack",
-  322: "WBPXSP Sports Beltpack",
-  325: "WBPRVCBRS Beltpack",
-  326: "WBPRVCBRSSP Beltpack",
+  258: "BPX Belt Pack",
+  259: "BPXSP Sports Belt Pack",
+  321: "WBPX Wireless Belt Pack",
+  322: "WBPXSP Wireless Sports Belt Pack",
+  325: "WBPRVCBRS Wireless Belt Pack",
+  326: "WBPRVCBRSSP Wireless Sports Belt Pack",
   384: "Wallpanels Group",
   385: "WPSP Wallpanel",
   386: "WPHS Wallpanel",
@@ -31,10 +32,10 @@ export const deviceTypes: DeviceTypes = {
   777: "DANTE Interface",
   897: "BCN Beacon",
   898: "WAA Antenna",
-  899: "SIRDX Interface",
-  900: "SI4WR Interface",
-  901: "SI2WR Interface",
-  902: "SIBR8RV Interface"
+  899: "SiRDX Interface",
+  900: "Si4WR Interface",
+  901: "Si2WR Interface",
+  902: "SiBR8RV Interface"
 };
 
 export const getDeviceTypeName = (typeId: number): string => {
@@ -97,7 +98,6 @@ interface RawWirelessDeviceData {
   myId: string;
   Name: string;
   deviceType: number;
-  typeName: string;
   deviceId: string;
   poolData?: {
     rfId: string;
@@ -320,7 +320,7 @@ const extractWirelessDevices = (
       const data = deviceData as RawWirelessDeviceData;
 
       // Only create device if we have the minimum required data
-      if (!data.Name || !data.deviceType || !data.typeName) {
+      if (!data.Name || !data.deviceType) {
         console.warn(`Skipping wireless device ${deviceId} due to missing required data`);
         return null;
       }
@@ -331,7 +331,7 @@ const extractWirelessDevices = (
       return {
         name: data.Name,
         deviceType: data.deviceType,
-        typeName: data.typeName,
+        typeName: getDeviceTypeName(data.deviceType),
         serialNumber: additionalInfo?.serialNumber || DEFAULT_EMPTY_VALUE,
         firmware: additionalInfo?.firmware || DEFAULT_EMPTY_VALUE,
         ipAddress: DEFAULT_EMPTY_VALUE,     // No IP for wireless devices
@@ -341,28 +341,6 @@ const extractWirelessDevices = (
     })
     .filter((device): device is Device => device !== null);
 };
-
-export function parseDeviceData(deviceData: RawDeviceData): Device {
-  return {
-    name: deviceData.Name,
-    deviceType: deviceData.deviceType,
-    typeName: getDeviceTypeName(deviceData.deviceType),
-    serialNumber: deviceData.serialNumber,
-    firmware: deviceData.firmwareName,
-    ipAddress: deviceData.IpAddress,
-    macAddress: deviceData.macAddress,
-    linkedToUser: null
-  };
-}
-
-export function parseUserData(userData: RawUserData): User {
-  return {
-    id: '',  // This needs to be provided externally
-    name: userData.Name,
-    color: userData.Color,
-    devices: []
-  };
-}
 
 export function parseDeviceMacAddress(deviceData: Record<string, unknown>): string {
   const macAddress = deviceData.macAddress as string;
