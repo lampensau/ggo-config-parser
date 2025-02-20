@@ -49,9 +49,26 @@ interface RawConfigData {
     savedAtTimestamp: string;
     binaryTimestamp: string;
   };
-  Users?: Record<string, unknown>;
-  Network?: Record<string, unknown>;
-  Devices?: Record<string, unknown>;
+  Users?: {
+    keys: string[];
+    [key: string]: unknown;
+  };
+  Network?: {
+    keys: string[];
+    [key: string]: unknown;
+  };
+  Devices?: {
+    keys: string[];
+    [key: string]: unknown;
+  };
+  WirelessClients?: {
+    keys: string[];
+    [key: string]: unknown;
+  };
+  UsbDevices?: {
+    keys: string[];
+    [key: string]: unknown;
+  };
 }
 
 interface RawUserData {
@@ -76,6 +93,31 @@ interface RawDeviceData {
   };
 }
 
+interface RawWirelessDeviceData {
+  myId: string;
+  Name: string;
+  deviceType: number;
+  typeName: string;
+  deviceId: string;
+  poolData?: {
+    rfId: string;
+  };
+}
+
+interface RawDeviceAssignmentData {
+  myId: string;
+  UserId?: {
+    Type: number;
+    Id: number;  // Changed to number since user IDs are numbers
+  };
+}
+
+interface RawUsbDeviceData {
+  deviceId: string;
+  serialNumber: number;
+  firmwareName: string;
+}
+
 interface ConfigInfoData {
   "Configuration Name": string;
   "Configuration ID": string;
@@ -85,57 +127,80 @@ interface ConfigInfoData {
   "Unassigned Devices": number;
 }
 
+const DEFAULT_EMPTY_VALUE = '-';
+
+const formatConfigDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace(',', '');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+};
+
+const DEBUG = process.env.NODE_ENV !== 'production';
+
+const REQUIRED_SETTINGS = [
+  'Name',
+  'configId',
+  'MulticastAddress',
+  'savedAtTimestamp',
+  'binaryTimestamp'
+] as const;
+
 export function parseConfigFile(fileContent: string): ParsedConfig {
   try {
     const data = JSON.parse(fileContent) as RawConfigData;
 
-    // Debug logging
-    console.log('Parsed data structure:', {
-      name: data.Settings?.Name,
-      id: data.Settings?.configId,
-      multicastAddress: data.Settings?.MulticastAddress,
-      timestamp: data.Settings?.savedAtTimestamp,
-      binaryTimestamp: data.Settings?.binaryTimestamp
-    });
-
-    // Validate required fields
-    if (!data.Settings?.Name || !data.Settings?.configId || !data.Settings?.MulticastAddress || !data.Settings?.savedAtTimestamp || !data.Settings?.binaryTimestamp) {
-      console.error('Missing required fields in config data:', data);
-      throw new Error('Invalid configuration file structure');
+    if (DEBUG) {
+      console.log('Parsed data structure:', {
+        name: data.Settings?.Name,
+        id: data.Settings?.configId,
+        multicastAddress: data.Settings?.MulticastAddress,
+        timestamp: data.Settings?.savedAtTimestamp,
+        binaryTimestamp: data.Settings?.binaryTimestamp
+      });
     }
 
-    // Helper function to format dates
-    const formatDate = (dateString: string): string => {
-      try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).replace(',', '');
-      } catch (error) {
-        console.error('Error formatting date:', error);
-        return dateString; // Return original string if parsing fails
-      }
-    };
+    // Validate required fields
+    const missingFields = REQUIRED_SETTINGS.filter(field => !data.Settings?.[field]);
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      throw new Error('Invalid configuration file structure');
+    }
 
     // Extract configuration details with proper typing
     const configInfo: ConfigInfoData = {
       "Configuration Name": data.Settings?.Name ?? 'Unknown',
       "Configuration ID": (data.Settings?.configId ?? '').substring(0, 8),
       "Multicast Address": data.Settings?.MulticastAddress ?? '',
-      "Config Timestamp": formatDate(data.Settings?.savedAtTimestamp ?? ''),
-      "Binary Timestamp": formatDate(data.Settings?.binaryTimestamp ?? ''),
+      "Config Timestamp": formatConfigDate(data.Settings?.savedAtTimestamp ?? ''),
+      "Binary Timestamp": formatConfigDate(data.Settings?.binaryTimestamp ?? ''),
       "Unassigned Devices": 0
     };
 
     // Extract users and devices
     const users = extractUsers(data.Users ?? {});
     const deviceAssignments = extractDeviceAssignments(data.Devices ?? {});
-    const devices = extractDevices(data.Network ?? {}, deviceAssignments);
+
+    // Get both regular and wireless devices
+    const regularDevices = extractDevices(data.Network ?? {}, deviceAssignments);
+    const wirelessDevices = extractWirelessDevices(
+      data.WirelessClients ?? {},
+      deviceAssignments,
+      data.UsbDevices ?? {}
+    );
+
+    // Combine all devices
+    const devices = [...regularDevices, ...wirelessDevices];
 
     // Count unassigned devices
     configInfo["Unassigned Devices"] = devices.filter(device => device.linkedToUser === null).length;
@@ -167,21 +232,33 @@ const extractUsers = (users: Record<string, unknown>): User[] => {
     });
 };
 
-const extractDeviceAssignments = (devices: Record<string, unknown>): { [key: string]: string } => {
+const extractDeviceAssignments = (
+  devices: Record<string, unknown>
+): { [key: string]: string } => {
   const assignments: { [key: string]: string } = {};
+
+  // Handle all devices (both regular and wireless)
   Object.entries(devices)
     .filter(([key]) => key !== 'keys' && key !== 'badge')
     .forEach(([deviceId, deviceData]) => {
-      const data = deviceData as RawDeviceData;
+      const data = deviceData as RawDeviceAssignmentData;
       if (data.UserId && data.UserId.Type === 1) {
+        // For wired devices, we need to store both formats of the ID
+        // Store the full ID for wireless devices
+        assignments[deviceId] = data.UserId.Id.toString();
+        // Store the short ID for wired devices
         const shortDeviceId = deviceId.slice(-6);
         assignments[shortDeviceId] = data.UserId.Id.toString();
       }
     });
+
   return assignments;
 };
 
-const extractDevices = (devices: Record<string, unknown>, deviceAssignments: { [key: string]: string }): Device[] => {
+const extractDevices = (
+  devices: Record<string, unknown>,
+  deviceAssignments: { [key: string]: string }
+): Device[] => {
   return Object.entries(devices)
     .filter(([key]) => key !== 'keys' && key !== 'badge')
     .map(([macAddress, deviceData]) => {
@@ -205,9 +282,65 @@ const extractDevices = (devices: Record<string, unknown>, deviceAssignments: { [
     });
 };
 
-export function parseDeviceType(deviceType: number): string {
-  return getDeviceTypeName(deviceType);
-}
+const extractUsbDeviceInfo = (
+  usbDevices: Record<string, unknown>
+): Map<string, { serialNumber: string, firmware: string }> => {
+  const deviceInfo = new Map();
+
+  if (!usbDevices?.keys) return deviceInfo;
+
+  Object.entries(usbDevices)
+    .filter(([key]) => key !== 'keys')
+    .forEach(([, deviceData]) => {
+      const data = deviceData as RawUsbDeviceData;
+      if (data.deviceId && data.serialNumber) {
+        deviceInfo.set(data.deviceId, {
+          serialNumber: data.serialNumber.toString(),
+          firmware: data.firmwareName || DEFAULT_EMPTY_VALUE
+        });
+      }
+    });
+
+  return deviceInfo;
+};
+
+const extractWirelessDevices = (
+  wirelessClients: Record<string, unknown>,
+  deviceAssignments: { [key: string]: string },
+  usbDevices: Record<string, unknown>
+): Device[] => {
+  if (!wirelessClients?.keys) return [];
+
+  // Get USB device information
+  const usbDeviceInfo = extractUsbDeviceInfo(usbDevices);
+
+  return Object.entries(wirelessClients)
+    .filter(([key]) => key !== 'keys')
+    .map(([deviceId, deviceData]) => {
+      const data = deviceData as RawWirelessDeviceData;
+
+      // Only create device if we have the minimum required data
+      if (!data.Name || !data.deviceType || !data.typeName) {
+        console.warn(`Skipping wireless device ${deviceId} due to missing required data`);
+        return null;
+      }
+
+      // Get additional info from USB devices if available
+      const additionalInfo = usbDeviceInfo.get(deviceId);
+
+      return {
+        name: data.Name,
+        deviceType: data.deviceType,
+        typeName: data.typeName,
+        serialNumber: additionalInfo?.serialNumber || DEFAULT_EMPTY_VALUE,
+        firmware: additionalInfo?.firmware || DEFAULT_EMPTY_VALUE,
+        ipAddress: DEFAULT_EMPTY_VALUE,     // No IP for wireless devices
+        macAddress: data.poolData?.rfId ?? deviceId,
+        linkedToUser: deviceAssignments[deviceId] || null
+      };
+    })
+    .filter((device): device is Device => device !== null);
+};
 
 export function parseDeviceData(deviceData: RawDeviceData): Device {
   return {
