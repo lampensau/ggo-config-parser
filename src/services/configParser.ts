@@ -41,9 +41,41 @@ export const getDeviceTypeName = (typeId: number): string => {
   return deviceTypes[typeId] || "Unknown Device Type";
 };
 
-export const parseConfigFile = (fileContent: string): ParsedConfig => {
+interface RawConfigData {
+  name: string;
+  id: string;
+  multicastAddress: string;
+  timestamp: string;
+  binaryTimestamp: string;
+  users: Record<string, unknown>;
+  devices: Record<string, unknown>;
+}
+
+interface RawUserData {
+  Name: string;
+  Color: string;
+  UserId?: {
+    Type: number;
+    Id: string;
+  };
+}
+
+interface RawDeviceData {
+  Name: string;
+  deviceType: number;
+  serialNumber: string;
+  firmwareName: string;
+  IpAddress: string;
+  macAddress: string;
+  UserId?: {
+    Type: number;
+    Id: string;
+  };
+}
+
+export function parseConfigFile(fileContent: string): ParsedConfig {
   try {
-    const config = JSON.parse(fileContent);
+    const data = JSON.parse(fileContent) as RawConfigData;
 
     // Helper function to format dates
     const formatDate = (dateString: string): string => {
@@ -60,71 +92,110 @@ export const parseConfigFile = (fileContent: string): ParsedConfig => {
 
     // Extract configuration details
     const configInfo = {
-      "Configuration Name": config.Settings.Name,
-      "Configuration ID": config.Settings.configId.substring(0, 8),
-      "Multicast Address": config.Settings.MulticastAddress,
-      "Config Timestamp": formatDate(config.Settings.savedAtTimestamp),
-      "Binary Timestamp": formatDate(config.Settings.binaryTimestamp)
+      "Configuration Name": data.name,
+      "Configuration ID": data.id.substring(0, 8),
+      "Multicast Address": data.multicastAddress,
+      "Config Timestamp": formatDate(data.timestamp),
+      "Binary Timestamp": formatDate(data.binaryTimestamp)
     };
 
     // Extract users and devices
-    const users = extractUsers(config);
-    const deviceAssignments = extractDeviceAssignments(config);
-    const devices = extractDevices(config, deviceAssignments);
+    const users = extractUsers(data.users);
+    const deviceAssignments = extractDeviceAssignments(data.devices);
+    const devices = extractDevices(data.devices, deviceAssignments);
 
     // Count unassigned devices
     const unassignedDevices = devices.filter(device => device.linkedToUser === null).length;
     configInfo["Unassigned Devices"] = unassignedDevices;
 
     return { configInfo, users, devices };
-  } catch (err) {
-    throw new Error('Failed to parse configuration file. Please ensure it is a valid Green-GO configuration file.');
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to parse config file: ${error.message}`);
+    }
+    throw new Error('Failed to parse config file');
   }
-};
+}
 
-const extractUsers = (config: any): User[] => {
-  return Object.entries(config.Users)
+const extractUsers = (users: Record<string, unknown>): User[] => {
+  return Object.entries(users)
     .filter(([key]) => key !== 'keys' && key !== 'badge')
-    .map(([id, userData]: [string, any]) => ({
-      id,
-      name: userData.Name,
-      color: userData.Color,
-      devices: []
-    }));
+    .map(([id, userData]) => {
+      const data = userData as RawUserData;
+      return {
+        id,
+        name: data.Name,
+        color: data.Color,
+        devices: []
+      };
+    });
 };
 
-const extractDeviceAssignments = (config: any): { [key: string]: string } => {
+const extractDeviceAssignments = (devices: Record<string, unknown>): { [key: string]: string } => {
   const assignments: { [key: string]: string } = {};
-  Object.entries(config.Devices || {})
+  Object.entries(devices)
     .filter(([key]) => key !== 'keys' && key !== 'badge')
-    .forEach(([deviceId, deviceData]: [string, any]) => {
-      if (deviceData.UserId && deviceData.UserId.Type === 1) {
+    .forEach(([deviceId, deviceData]) => {
+      const data = deviceData as RawDeviceData;
+      if (data.UserId && data.UserId.Type === 1) {
         const shortDeviceId = deviceId.slice(-6);
-        assignments[shortDeviceId] = deviceData.UserId.Id.toString();
+        assignments[shortDeviceId] = data.UserId.Id.toString();
       }
     });
   return assignments;
 };
 
-const extractDevices = (config: any, deviceAssignments: { [key: string]: string }): Device[] => {
-  return Object.entries(config.Network || {})
+const extractDevices = (devices: Record<string, unknown>, deviceAssignments: { [key: string]: string }): Device[] => {
+  return Object.entries(devices)
     .filter(([key]) => key !== 'keys' && key !== 'badge')
-    .map(([macAddress, deviceData]: [string, any]) => {
-      const shortDeviceId = deviceData.macAddress
+    .map(([macAddress, deviceData]) => {
+      const data = deviceData as RawDeviceData;
+      const shortDeviceId = macAddress
         .split('-')
         .slice(-3)
         .join('')
         .toUpperCase();
 
       return {
-        name: deviceData.Name,
-        deviceType: deviceData.deviceType,
-        typeName: getDeviceTypeName(deviceData.deviceType),
-        serialNumber: deviceData.serialNumber,
-        firmware: deviceData.firmwareName,
-        ipAddress: deviceData.IpAddress,
-        macAddress: deviceData.macAddress,
+        name: data.Name,
+        deviceType: data.deviceType,
+        typeName: getDeviceTypeName(data.deviceType),
+        serialNumber: data.serialNumber,
+        firmware: data.firmwareName,
+        ipAddress: data.IpAddress,
+        macAddress: data.macAddress,
         linkedToUser: deviceAssignments[shortDeviceId] || null
       };
     });
-}; 
+};
+
+export function parseDeviceType(deviceType: number): string {
+  return getDeviceTypeName(deviceType);
+}
+
+export function parseDeviceData(deviceData: RawDeviceData): Device {
+  return {
+    name: deviceData.Name,
+    deviceType: deviceData.deviceType,
+    typeName: getDeviceTypeName(deviceData.deviceType),
+    serialNumber: deviceData.serialNumber,
+    firmware: deviceData.firmwareName,
+    ipAddress: deviceData.IpAddress,
+    macAddress: deviceData.macAddress,
+    linkedToUser: null
+  };
+}
+
+export function parseUserData(userData: RawUserData): User {
+  return {
+    id: '',  // This needs to be provided externally
+    name: userData.Name,
+    color: userData.Color,
+    devices: []
+  };
+}
+
+export function parseDeviceMacAddress(deviceData: Record<string, unknown>): string {
+  const macAddress = deviceData.macAddress as string;
+  return macAddress;
+} 

@@ -33,4 +33,4 @@ export interface ParsedConfig {
 
 export interface DeviceTypes {
   [key: number]: string;
-} 
+}
