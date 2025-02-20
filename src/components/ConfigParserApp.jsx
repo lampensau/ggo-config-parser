@@ -277,7 +277,7 @@ const ConfigParserApp = () => {
       <div className="sticky top-0 z-10 bg-emerald-600 dark:bg-emerald-800 shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center">
-            <img src="/logo-plain.svg" alt="Green-GO Logo" className="h-8 mr-2 brightness-0 invert" />
+            <img src="/ggo-config-parser/logo-plain.svg" alt="Green-GO Logo" className="h-8 mr-2 brightness-0 invert" />
             <h1 className="text-white text-xl font-semibold">Green-GO Config Parser</h1>
           </div>
           <TooltipProvider>
