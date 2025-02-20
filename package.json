@@ -4,7 +4,7 @@
   "private": true,
   "homepage": "https://lampensau.github.io/ggo-config-parser",
   "scripts": {
-    "dev": "next dev",
+    "dev": "node --no-deprecation ./node_modules/.bin/next dev",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d out",
     "build": "next build",
@@ -31,8 +31,9 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "gh-pages": "^6.3.0",
-    "postcss": "^8",
+    "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "autoprefixer": "^10.4.17"
   }
 }
