@@ -477,10 +477,10 @@ const ConfigParserApp = () => {
               );
             })}
 
-            {/* Unlinked Devices Section */}
+            {/* Unassigned Devices Section */}
             <Card className="bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
               <CardHeader>
-                <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Unlinked Devices</CardTitle>
+                <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Unassigned Devices</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4">
