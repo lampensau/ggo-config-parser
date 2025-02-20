@@ -73,6 +73,15 @@ interface RawDeviceData {
   };
 }
 
+interface ConfigInfoData {
+  "Configuration Name": string;
+  "Configuration ID": string;
+  "Multicast Address": string;
+  "Config Timestamp": string;
+  "Binary Timestamp": string;
+  "Unassigned Devices": number;
+}
+
 export function parseConfigFile(fileContent: string): ParsedConfig {
   try {
     const data = JSON.parse(fileContent) as RawConfigData;
@@ -90,13 +99,14 @@ export function parseConfigFile(fileContent: string): ParsedConfig {
       }).replace(',', '');
     };
 
-    // Extract configuration details
-    const configInfo = {
+    // Extract configuration details with proper typing
+    const configInfo: ConfigInfoData = {
       "Configuration Name": data.name,
       "Configuration ID": data.id.substring(0, 8),
       "Multicast Address": data.multicastAddress,
       "Config Timestamp": formatDate(data.timestamp),
-      "Binary Timestamp": formatDate(data.binaryTimestamp)
+      "Binary Timestamp": formatDate(data.binaryTimestamp),
+      "Unassigned Devices": 0  // Initialize with 0
     };
 
     // Extract users and devices
@@ -105,8 +115,7 @@ export function parseConfigFile(fileContent: string): ParsedConfig {
     const devices = extractDevices(data.devices, deviceAssignments);
 
     // Count unassigned devices
-    const unassignedDevices = devices.filter(device => device.linkedToUser === null).length;
-    configInfo["Unassigned Devices"] = unassignedDevices;
+    configInfo["Unassigned Devices"] = devices.filter(device => device.linkedToUser === null).length;
 
     return { configInfo, users, devices };
   } catch (error: unknown) {

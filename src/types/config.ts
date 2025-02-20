@@ -22,7 +22,7 @@ export interface ConfigInfo {
   "Multicast Address": string;
   "Config Timestamp": string;
   "Binary Timestamp": string;
-  "Unassigned Devices"?: number;
+  "Unassigned Devices": number;
 }
 
 export interface ParsedConfig {
