@@ -42,13 +42,16 @@ export const getDeviceTypeName = (typeId: number): string => {
 };
 
 interface RawConfigData {
-  name: string;
-  id: string;
-  multicastAddress: string;
-  timestamp: string;
-  binaryTimestamp: string;
-  users: Record<string, unknown>;
-  devices: Record<string, unknown>;
+  Settings?: {
+    Name: string;
+    configId: string;
+    MulticastAddress: string;
+    savedAtTimestamp: string;
+    binaryTimestamp: string;
+  };
+  Users?: Record<string, unknown>;
+  Network?: Record<string, unknown>;
+  Devices?: Record<string, unknown>;
 }
 
 interface RawUserData {
@@ -86,39 +89,63 @@ export function parseConfigFile(fileContent: string): ParsedConfig {
   try {
     const data = JSON.parse(fileContent) as RawConfigData;
 
+    // Debug logging
+    console.log('Parsed data structure:', {
+      name: data.Settings?.Name,
+      id: data.Settings?.configId,
+      multicastAddress: data.Settings?.MulticastAddress,
+      timestamp: data.Settings?.savedAtTimestamp,
+      binaryTimestamp: data.Settings?.binaryTimestamp
+    });
+
+    // Validate required fields
+    if (!data.Settings?.Name || !data.Settings?.configId || !data.Settings?.MulticastAddress || !data.Settings?.savedAtTimestamp || !data.Settings?.binaryTimestamp) {
+      console.error('Missing required fields in config data:', data);
+      throw new Error('Invalid configuration file structure');
+    }
+
     // Helper function to format dates
     const formatDate = (dateString: string): string => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).replace(',', '');
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).replace(',', '');
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString; // Return original string if parsing fails
+      }
     };
 
     // Extract configuration details with proper typing
     const configInfo: ConfigInfoData = {
-      "Configuration Name": data.name,
-      "Configuration ID": data.id.substring(0, 8),
-      "Multicast Address": data.multicastAddress,
-      "Config Timestamp": formatDate(data.timestamp),
-      "Binary Timestamp": formatDate(data.binaryTimestamp),
-      "Unassigned Devices": 0  // Initialize with 0
+      "Configuration Name": data.Settings?.Name ?? 'Unknown',
+      "Configuration ID": (data.Settings?.configId ?? '').substring(0, 8),
+      "Multicast Address": data.Settings?.MulticastAddress ?? '',
+      "Config Timestamp": formatDate(data.Settings?.savedAtTimestamp ?? ''),
+      "Binary Timestamp": formatDate(data.Settings?.binaryTimestamp ?? ''),
+      "Unassigned Devices": 0
     };
 
     // Extract users and devices
-    const users = extractUsers(data.users);
-    const deviceAssignments = extractDeviceAssignments(data.devices);
-    const devices = extractDevices(data.devices, deviceAssignments);
+    const users = extractUsers(data.Users ?? {});
+    const deviceAssignments = extractDeviceAssignments(data.Devices ?? {});
+    const devices = extractDevices(data.Network ?? {}, deviceAssignments);
 
     // Count unassigned devices
     configInfo["Unassigned Devices"] = devices.filter(device => device.linkedToUser === null).length;
 
     return { configInfo, users, devices };
   } catch (error: unknown) {
+    // Enhanced error logging
+    console.error('Error parsing config file:', error);
+    console.error('File content preview:', fileContent.substring(0, 200) + '...');
+
     if (error instanceof Error) {
       throw new Error(`Failed to parse config file: ${error.message}`);
     }

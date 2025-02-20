@@ -35,6 +35,12 @@ const ConfigParserApp: React.FC = () => {
       return;
     }
 
+    console.log('File being processed:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+
     if (!file.name.endsWith('.gg5')) {
       setError('Please upload a Green-GO .gg5 configuration file');
       setIsLoading(false);
@@ -46,14 +52,23 @@ const ConfigParserApp: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
+        console.log('File content length:', event.target?.result?.toString().length);
         const parsed = parseConfigFile(event.target?.result as string);
         setParsedData(parsed);
       } catch (err) {
+        console.error('Error in file processing:', err);
         setError(err instanceof Error ? err.message : 'Failed to parse file');
       } finally {
         setIsLoading(false);
       }
     };
+
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error);
+      setError('Error reading file');
+      setIsLoading(false);
+    };
+
     reader.readAsText(file);
   }, []);
 

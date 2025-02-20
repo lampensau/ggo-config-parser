@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   assetPrefix: process.env.NODE_ENV === 'production' ? '/ggo-config-parser/' : '',
   trailingSlash: process.env.NODE_ENV === 'production',
   compress: true,
+  productionBrowserSourceMaps: true,
   experimental: {
     optimizePackageImports: [
       'lucide-react',
