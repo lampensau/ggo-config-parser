@@ -1,15 +1,22 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
   output: 'export',
   images: {
     unoptimized: true,
   },
-  basePath: '/ggo-config-parser',
-  assetPrefix: '/ggo-config-parser/',
-  trailingSlash: true,
-  eslint: {
-    ignoreDuringBuilds: true,
+  basePath: process.env.NODE_ENV === 'production' ? '/ggo-config-parser' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/ggo-config-parser/' : '',
+  trailingSlash: process.env.NODE_ENV === 'production',
+  compress: true,
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-tooltip',
+      'clsx',
+      'tailwind-merge'
+    ]
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
