@@ -261,9 +261,9 @@ const ConfigParserApp = () => {
 
   const getThemeIcon = () => {
     if (!mounted) return null;
-    if (theme === 'dark') return <Sun className="w-5 h-5" />;
-    if (theme === 'light') return <Moon className="w-5 h-5" />;
-    return <SunMoon className="w-5 h-5" />;
+    if (theme === 'dark') return <Moon className="w-5 h-5" />;
+    if (theme === 'light') return <SunMoon className="w-5 h-5" />;
+    return <Sun className="w-5 h-5" />;
   };
 
   const getThemeLabel = () => {
