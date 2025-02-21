@@ -199,22 +199,6 @@ const formatConfigDate = (dateString: string): string => {
 
 const DEBUG = process.env.NODE_ENV !== 'production';
 
-export const getTalkModeName = (mode: number): string => {
-  return TALK_MODES[mode as keyof typeof TALK_MODES] || "Unknown";
-};
-
-export const getListenModeName = (mode: number): string => {
-  return LISTEN_MODES[mode as keyof typeof LISTEN_MODES] || "Unknown";
-};
-
-export const getChannelModeName = (mode: number): string => {
-  return CHANNEL_MODES[mode as keyof typeof CHANNEL_MODES] || "Unknown";
-};
-
-export const getCallModeName = (mode: number): string => {
-  return CALL_MODES[mode as keyof typeof CALL_MODES] || "Unknown";
-};
-
 export const getPriorityName = (priority: number): string => {
   const priorities = {
     [-1]: "Low",

@@ -12,11 +12,7 @@ import {
   CHANNEL_MODES,
   CALL_MODES
 } from '@/constants';
-
-interface UserDevicesProps {
-  user: User;
-  devices: Device[];
-}
+import type { UserCardProps } from '@/types/ui';
 
 const ChannelAssignmentHeader: React.FC = () => {
   return (
@@ -92,7 +88,7 @@ const ChannelAssignmentRow: React.FC<{ assignment: ChannelAssignment }> = ({ ass
   );
 };
 
-const UserCard: React.FC<UserDevicesProps> = ({ user, devices }) => {
+const UserCard: React.FC<UserCardProps> = ({ user, devices }) => {
   const [showChannels, setShowChannels] = useState(false);
   const linkedDevices = devices.filter(device => device.linkedToUser === user.id);
 
