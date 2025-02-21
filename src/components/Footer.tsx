@@ -7,7 +7,7 @@ export const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             <p>
-              Built by{' '}
+              By{' '}
               <a
                 href="https://github.com/lampensau"
                 className="text-emerald-600 dark:text-emerald-400 hover:underline"
