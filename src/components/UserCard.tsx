@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DeviceCard } from './DeviceCard';
 import { ChevronDown, ChevronUp, User as UserIcon, Users, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
-import type { User, Device, ChannelAssignment } from '@/types/config';
+import type { ChannelAssignment } from '@/types/config';
 import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { UserSummary } from './UserSummary';
 import { getPriorityName } from '@/services/configParser';
