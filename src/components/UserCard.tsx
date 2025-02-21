@@ -23,8 +23,8 @@ const ChannelAssignmentHeader: React.FC = () => {
       <div className="w-20">TALK</div>
       <div className="w-28">TALK MODE</div>
       <div className="w-28">LISTEN MODE</div>
-      <div className="w-24">CH MODE</div>
       <div className="w-28">CALL MODE</div>
+      <div className="w-24">CH MODE</div>
       <div className="w-20">PRIORITY</div>
     </div>
   );
@@ -73,12 +73,12 @@ const ChannelAssignmentRow: React.FC<{ assignment: ChannelAssignment }> = ({ ass
         {LISTEN_MODES[assignment.listenMode as keyof typeof LISTEN_MODES] || "Unknown"}
       </div>
 
-      <div className="w-24 text-gray-600 dark:text-gray-400">
-        {CHANNEL_MODES[assignment.channelMode as keyof typeof CHANNEL_MODES] || "Unknown"}
-      </div>
-
       <div className="w-28 text-gray-600 dark:text-gray-400">
         {CALL_MODES[assignment.callMode as keyof typeof CALL_MODES] || "Unknown"}
+      </div>
+
+      <div className="w-24 text-gray-600 dark:text-gray-400">
+        {CHANNEL_MODES[assignment.channelMode as keyof typeof CHANNEL_MODES] || "Unknown"}
       </div>
 
       <div className="w-20 text-gray-600 dark:text-gray-400">
