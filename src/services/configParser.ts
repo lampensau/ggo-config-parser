@@ -310,13 +310,31 @@ const extractGroups = (groups: Record<string, unknown>): Map<string, Group> => {
   return groupsMap;
 };
 
-const extractUserDetails = (userData: RawUserData): UserDetails => {
+const extractUserDetails = (data: RawUserData): UserDetails | undefined => {
+  // If there's no meaningful data to extract, return undefined
+  if (!data.DisplayName &&
+    !data.SpecialChannels?.Program &&
+    (!data.DeviceProfiles || Object.keys(data.DeviceProfiles).length === 0) &&
+    !data.Settings?.Isolate &&
+    (!data.FlexList || data.FlexList.length === 0)) {
+    return undefined;
+  }
+
   return {
-    DisplayName: userData.DisplayName,
-    SpecialChannels: userData.SpecialChannels,
-    DeviceProfiles: userData.DeviceProfiles,
-    Settings: userData.Settings,
-    FlexList: userData.FlexList
+    DisplayName: data.DisplayName,
+    SpecialChannels: data.SpecialChannels && {
+      Program: data.SpecialChannels.Program
+    },
+    // Only include DeviceProfiles if it exists and has entries
+    ...(data.DeviceProfiles && Object.keys(data.DeviceProfiles).length > 0 && {
+      DeviceProfiles: data.DeviceProfiles
+    }),
+    ...(data.Settings && {
+      Settings: data.Settings
+    }),
+    ...(data.FlexList && data.FlexList.length > 0 && {
+      FlexList: data.FlexList
+    })
   };
 };
 
