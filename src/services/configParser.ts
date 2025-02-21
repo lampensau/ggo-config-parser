@@ -1,45 +1,25 @@
-import { ParsedConfig, DeviceTypes, User, Device } from '@/types/config';
-
-export const deviceTypes: DeviceTypes = {
-  258: "BPX Belt Pack",
-  259: "BPXSP Sports Belt Pack",
-  321: "WBPX Wireless Belt Pack",
-  322: "WBPXSP Wireless Sports Belt Pack",
-  325: "WBPRVCBRS Wireless Belt Pack",
-  326: "WBPRVCBRSSP Wireless Sports Belt Pack",
-  384: "Wallpanels Group",
-  385: "WPSP Wallpanel",
-  386: "WPHS Wallpanel",
-  387: "WPNA Wallpanel",
-  388: "WPX Wallpanel",
-  513: "MCD08 Desk Station",
-  514: "MCR12 Desk Station",
-  515: "MCD16 Desk Station",
-  516: "MCD24 Desk Station",
-  517: "MCD32 Desk Station",
-  518: "MCX Rack Station",
-  519: "MCXEXT Rack Channel Extension",
-  520: "MCXD Desk Station",
-  521: "MCXDEXT Desk Channel Extension",
-  769: "4W Interface",
-  770: "2W Interface",
-  771: "BRIDGE Interface",
-  772: "INTERFACEX (LCD)",
-  773: "INTERFACEX (TFT)",
-  774: "BRIDGEX Interface (LCD)",
-  775: "BRIDGEX Interface (TFT)",
-  776: "Q4WR Interface",
-  777: "DANTE Interface",
-  897: "BCN Beacon",
-  898: "WAA Antenna",
-  899: "SiRDX Interface",
-  900: "Si4WR Interface",
-  901: "Si2WR Interface",
-  902: "SiBR8RV Interface"
-};
+import {
+  ParsedConfig,
+  User,
+  Device,
+  ChannelAssignment,
+  Group,
+  UserDetails,
+  UserSpecialChannel,
+  DeviceProfile,
+  UserSettings,
+  FlexListEntry
+} from '@/types/config';
+import { isValidConfigDateFormat } from '@/lib/utils';
+import {
+  DEVICE_TYPES,
+  ERROR_MESSAGES,
+  REQUIRED_SETTINGS,
+  DEFAULT_EMPTY_VALUE
+} from '@/constants';
 
 export const getDeviceTypeName = (typeId: number): string => {
-  return deviceTypes[typeId] || "Unknown Device Type";
+  return DEVICE_TYPES[typeId as keyof typeof DEVICE_TYPES] || ERROR_MESSAGES.UNKNOWN_DEVICE_TYPE;
 };
 
 interface RawConfigData {
@@ -49,6 +29,11 @@ interface RawConfigData {
     MulticastAddress: string;
     savedAtTimestamp: string;
     binaryTimestamp: string;
+  };
+  State?: {
+    newBinary: number;
+    configChanged: number;
+    following: number;
   };
   Users?: {
     keys: string[];
@@ -70,6 +55,10 @@ interface RawConfigData {
     keys: string[];
     [key: string]: unknown;
   };
+  Groups?: {
+    keys: string[];
+    [key: string]: unknown;
+  };
 }
 
 interface RawUserData {
@@ -79,6 +68,12 @@ interface RawUserData {
     Type: number;
     Id: string;
   };
+  Channels?: Record<string, RawChannelData>;
+  DisplayName?: string;
+  SpecialChannels?: Record<string, UserSpecialChannel>;
+  DeviceProfiles?: Record<string, DeviceProfile>;
+  Settings?: UserSettings;
+  FlexList?: FlexListEntry[];
 }
 
 interface RawDeviceData {
@@ -118,6 +113,32 @@ interface RawUsbDeviceData {
   firmwareName: string;
 }
 
+interface RawChannelData {
+  myId: string;
+  Assign: {
+    Type: number;
+    Id: string | number;
+  };
+  TalkMode: number;
+  ListenMode: number;
+  ChannelMode: number;
+  Listen: number;
+  Level: {
+    Value: number;
+    min: number;
+    max: number;
+  };
+  talkState: number;
+  CallMode: number;
+  Priority: number;
+}
+
+interface RawGroupData {
+  myId: string;
+  Name: string;
+  Color: string;
+}
+
 interface ConfigInfoData {
   "Configuration Name": string;
   "Configuration ID": string;
@@ -125,13 +146,42 @@ interface ConfigInfoData {
   "Config Timestamp": string;
   "Binary Timestamp": string;
   "Unassigned Devices": number;
+  state: {
+    newBinary: number;
+  };
 }
 
-const DEFAULT_EMPTY_VALUE = '-';
+interface RawDeviceStatusData {
+  myId: string;
+  Name: string;
+  syncStatus: number;
+  macAddress: string;
+}
 
 const formatConfigDate = (dateString: string): string => {
   try {
-    const date = new Date(dateString);
+    // Input format: "DD-M-YYYY HH:mm:ss"
+    const [datePart, timePart] = dateString.split(' ');
+    const [day, month, year] = datePart.split('-');
+    const [hours, minutes, seconds] = timePart.split(':');
+
+    // Create date using numeric values
+    const date = new Date(
+      parseInt(year),
+      parseInt(month) - 1, // Months are 0-based in JS
+      parseInt(day),
+      parseInt(hours),
+      parseInt(minutes),
+      parseInt(seconds)
+    );
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date created from:', dateString);
+      return ERROR_MESSAGES.INVALID_DATE;
+    }
+
+    // Format the date
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -140,21 +190,39 @@ const formatConfigDate = (dateString: string): string => {
       minute: '2-digit',
       hour12: false
     }).replace(',', '');
+
   } catch (error) {
-    console.error('Error formatting date:', error);
-    return dateString;
+    console.error('Error formatting date:', error, 'Input:', dateString);
+    return ERROR_MESSAGES.INVALID_DATE;
   }
 };
 
 const DEBUG = process.env.NODE_ENV !== 'production';
 
-const REQUIRED_SETTINGS = [
-  'Name',
-  'configId',
-  'MulticastAddress',
-  'savedAtTimestamp',
-  'binaryTimestamp'
-] as const;
+export const getTalkModeName = (mode: number): string => {
+  return TALK_MODES[mode as keyof typeof TALK_MODES] || "Unknown";
+};
+
+export const getListenModeName = (mode: number): string => {
+  return LISTEN_MODES[mode as keyof typeof LISTEN_MODES] || "Unknown";
+};
+
+export const getChannelModeName = (mode: number): string => {
+  return CHANNEL_MODES[mode as keyof typeof CHANNEL_MODES] || "Unknown";
+};
+
+export const getCallModeName = (mode: number): string => {
+  return CALL_MODES[mode as keyof typeof CALL_MODES] || "Unknown";
+};
+
+export const getPriorityName = (priority: number): string => {
+  const priorities = {
+    [-1]: "Low",
+    0: "Normal",
+    1: "High"
+  };
+  return priorities[priority as keyof typeof priorities] || "Normal";
+};
 
 export function parseConfigFile(fileContent: string): ParsedConfig {
   try {
@@ -177,22 +245,45 @@ export function parseConfigFile(fileContent: string): ParsedConfig {
       throw new Error('Invalid configuration file structure');
     }
 
-    // Extract configuration details with proper typing
+    // Validate date formats
+    const savedAtTimestamp = data.Settings?.savedAtTimestamp || '';
+    const binaryTimestamp = data.Settings?.binaryTimestamp || '';
+
+    if (!isValidConfigDateFormat(savedAtTimestamp)) {
+      console.warn('Invalid savedAtTimestamp format:', savedAtTimestamp);
+    }
+    if (!isValidConfigDateFormat(binaryTimestamp)) {
+      console.warn('Invalid binaryTimestamp format:', binaryTimestamp);
+    }
+
+    // Extract configuration details
     const configInfo: ConfigInfoData = {
-      "Configuration Name": data.Settings?.Name ?? 'Unknown',
-      "Configuration ID": (data.Settings?.configId ?? '').substring(0, 8),
-      "Multicast Address": data.Settings?.MulticastAddress ?? '',
-      "Config Timestamp": formatConfigDate(data.Settings?.savedAtTimestamp ?? ''),
-      "Binary Timestamp": formatConfigDate(data.Settings?.binaryTimestamp ?? ''),
-      "Unassigned Devices": 0
+      "Configuration Name": data.Settings?.Name || "Unknown",
+      "Configuration ID": data.Settings?.configId || "Unknown",
+      "Multicast Address": data.Settings?.MulticastAddress || "Unknown",
+      "Config Timestamp": formatConfigDate(savedAtTimestamp || "Invalid Date"),
+      "Binary Timestamp": formatConfigDate(binaryTimestamp || "Invalid Date"),
+      "Unassigned Devices": 0,
+      state: {
+        newBinary: data.State?.newBinary ?? 0
+      }
     };
 
-    // Extract users and devices
-    const users = extractUsers(data.Users ?? {});
+    // Extract groups first since we need them for channel assignments
+    const groups = extractGroups(data.Groups ?? {});
+
+    // Extract users with channel assignments
+    const users = extractUsers(data.Users ?? {}, groups);
+
+    // Extract devices
     const deviceAssignments = extractDeviceAssignments(data.Devices ?? {});
 
     // Get both regular and wireless devices
-    const regularDevices = extractDevices(data.Network ?? {}, deviceAssignments);
+    const regularDevices = extractDevices(
+      data.Devices ?? {},
+      data.Network ?? {},
+      deviceAssignments
+    );
     const wirelessDevices = extractWirelessDevices(
       data.WirelessClients ?? {},
       deviceAssignments,
@@ -218,16 +309,81 @@ export function parseConfigFile(fileContent: string): ParsedConfig {
   }
 }
 
-const extractUsers = (users: Record<string, unknown>): User[] => {
+const extractGroups = (groups: Record<string, unknown>): Map<string, Group> => {
+  const groupsMap = new Map<string, Group>();
+
+  Object.entries(groups)
+    .filter(([key]) => key !== 'keys' && key !== 'badge')
+    .forEach(([id, groupData]) => {
+      const data = groupData as RawGroupData;
+      groupsMap.set(id, {
+        id,
+        name: data.Name,
+        color: data.Color?.toString() || '0'
+      });
+    });
+
+  return groupsMap;
+};
+
+const extractUserDetails = (userData: RawUserData): UserDetails => {
+  return {
+    DisplayName: userData.DisplayName,
+    SpecialChannels: userData.SpecialChannels,
+    DeviceProfiles: userData.DeviceProfiles,
+    Settings: userData.Settings,
+    FlexList: userData.FlexList
+  };
+};
+
+const extractUsers = (
+  users: Record<string, unknown>,
+  groups: Map<string, Group>
+): User[] => {
   return Object.entries(users)
     .filter(([key]) => key !== 'keys' && key !== 'badge')
     .map(([id, userData]) => {
       const data = userData as RawUserData;
+
+      const channelAssignments: ChannelAssignment[] = [];
+
+      if (data.Channels) {
+        Object.entries(data.Channels)
+          .filter(([key]) => key !== 'keys')
+          .forEach(([channelNum, channelData]) => {
+            const assignment = channelData.Assign;
+            if (assignment && assignment.Type && assignment.Id) {
+              const targetId = assignment.Id.toString();
+              const isUser = assignment.Type === 1;
+              const targetName = isUser ?
+                (users[targetId] as RawUserData)?.Name || 'Unknown User' :
+                groups.get(targetId)?.name || 'Unknown Group';
+
+              channelAssignments.push({
+                type: isUser ? 'user' : 'group',
+                id: targetId,
+                name: targetName,
+                channelNumber: parseInt(channelNum),
+                talkMode: channelData.TalkMode,
+                listenMode: channelData.ListenMode,
+                channelMode: channelData.ChannelMode,
+                isListening: channelData.Listen === 1,
+                volume: channelData.Level?.Value ?? 0,
+                talkState: channelData.talkState,
+                callMode: channelData.CallMode,
+                priority: channelData.Priority
+              });
+            }
+          });
+      }
+
       return {
         id,
         name: data.Name,
         color: data.Color,
-        devices: []
+        devices: [],
+        channelAssignments: channelAssignments.length > 0 ? channelAssignments : undefined,
+        details: extractUserDetails(data)
       };
     });
 };
@@ -257,9 +413,21 @@ const extractDeviceAssignments = (
 
 const extractDevices = (
   devices: Record<string, unknown>,
+  networkDevices: Record<string, unknown>,
   deviceAssignments: { [key: string]: string }
 ): Device[] => {
-  return Object.entries(devices)
+  // Create a map of sync statuses from the Devices section
+  const syncStatuses = new Map<string, number>();
+  Object.entries(devices)
+    .filter(([key]) => key !== 'keys' && key !== 'badge')
+    .forEach(([, deviceData]) => {
+      const data = deviceData as RawDeviceStatusData;
+      if (data.macAddress) {
+        syncStatuses.set(data.macAddress, data.syncStatus);
+      }
+    });
+
+  return Object.entries(networkDevices)
     .filter(([key]) => key !== 'keys' && key !== 'badge')
     .map(([macAddress, deviceData]) => {
       const data = deviceData as RawDeviceData;
@@ -277,7 +445,8 @@ const extractDevices = (
         firmware: data.firmwareName,
         ipAddress: data.IpAddress,
         macAddress: data.macAddress,
-        linkedToUser: deviceAssignments[shortDeviceId] || null
+        linkedToUser: deviceAssignments[shortDeviceId] || null,
+        syncStatus: syncStatuses.get(data.macAddress) ?? 0
       };
     });
 };

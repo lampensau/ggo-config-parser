@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Timo Toups (@lampensau)
+                Timo Toups
               </a>
             </p>
           </div>
@@ -33,7 +33,6 @@ export const Footer: React.FC = () => {
 
           <div className="text-sm text-gray-600 dark:text-gray-400">
             <p>
-              Released under the{' '}
               <a
                 href="https://github.com/lampensau/ggo-config-parser/blob/master/LICENSE"
                 className="text-emerald-600 dark:text-emerald-400 hover:underline"

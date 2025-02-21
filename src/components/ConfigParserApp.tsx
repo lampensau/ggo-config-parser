@@ -10,9 +10,20 @@ import { ErrorBoundary } from './ErrorBoundary';
 import type { ParsedConfig, User, Device } from '@/types/config';
 
 // Dynamic imports with proper typing
-const ConfigDetails = dynamic(() => import('./ConfigDetails').then(mod => mod.ConfigDetails));
-const UserDevices = dynamic(() => import('./UserDevices').then(mod => mod.UserDevices));
-const UnassignedDevices = dynamic(() => import('./UnassignedDevices').then(mod => mod.UnassignedDevices));
+const ConfigDetails = dynamic(() =>
+  import('./ConfigDetails').then(mod => mod.ConfigDetails),
+  { ssr: false }
+);
+
+const UserCard = dynamic(() =>
+  import('./UserCard').then(mod => mod.default),
+  { ssr: false }
+);
+
+const UnassignedDevices = dynamic(() =>
+  import('./UnassignedDevices').then(mod => mod.UnassignedDevices),
+  { ssr: false }
+);
 
 const ConfigParserApp: React.FC = () => {
   const [parsedData, setParsedData] = useState<ParsedConfig | null>(null);
@@ -187,7 +198,7 @@ const ConfigParserApp: React.FC = () => {
               <ConfigDetails configInfo={parsedData.configInfo} />
 
               {parsedData.users.map(user => (
-                <UserDevices
+                <UserCard
                   key={user.id}
                   user={user}
                   devices={parsedData.devices}
