@@ -35,7 +35,8 @@ export const DEVICE_TYPES = {
   899: "SiRDX Interface",
   900: "Si4WR Interface",
   901: "Si2WR Interface",
-  902: "SiBR8RV Interface"
+  902: "SiBR8RV Interface",
+  903: "STRIDE Antenna"
 } as const;
 
 export const TALK_MODES = {
